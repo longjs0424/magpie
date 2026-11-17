@@ -20,7 +20,12 @@ An executable in `MAGPIE_ACCIO_BIN` wins over usual Windows/macOS install
 paths and PATH. Disconnect clears the model and subsequent launches receive
 no magpie variables. A process already running keeps its old environment;
 starting from the vendor's shortcut receives no magpie environment either.
-The existing translated launch notice tells the user how to start it.
+Windows also resolves an existing Accio desktop or Start-menu shortcut,
+read-only, for installations outside the usual folders. `OpenAccioWork`
+starts that executable with the same environment, without a shell. It
+serializes check/start, refuses an existing instance or unknown process
+state, and reaps the child; it never stops a running Accio task.
+The translated notice points to Open on the desktop Agents row.
 See [setup and compatibility](../accio-work.md) and
 `TestAccioWorkConnectLaunchDisconnect` / `TestAccioWorkLaunchQuotesShellData`.
 

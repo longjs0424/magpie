@@ -16,6 +16,8 @@ import (
 	"github.com/yetone/magpie/internal/proc"
 )
 
+var noticeAccioOpen = newNotice("Fully quit Accio Work, then click Open on its Agents row to use the selected model.")
+
 func accio(home string) *Agent {
 	path := gateway.AccioConfigPath()
 	get := jsonGet(path, "model")
@@ -41,8 +43,8 @@ func accio(home string) *Agent {
 		detect: func() bool { return isDir(filepath.Join(home, ".accio")) || accioExecutable(home) != "" },
 		Launch: launch, Start: start,
 		Notice: func() string {
-			if command := launch(); command != "" {
-				return noticeLaunch.say("agent", "Accio Work", "command", command)
+			if launch() != "" {
+				return noticeAccioOpen.String()
 			}
 			return ""
 		},
@@ -93,6 +95,9 @@ func accioExecutable(home string) string {
 		if isFile(p) {
 			return p
 		}
+	}
+	if p := accioShortcutExecutable(home); p != "" {
+		return p
 	}
 	return proc.FindTool("accio")
 }

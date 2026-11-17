@@ -3484,7 +3484,7 @@ func state() stateJSON {
 		// as agentCommand makes it, Launch asked once
 		aj.Command = agentLine(a, aj.Launch, runtime.GOOS)
 		aj.Terminal = terminalHere() && aj.Command != ""
-		aj.OpenApp = a.ID == "codex" && codexOpensApp()
+		aj.OpenApp = a.ID == "codex" && codexOpensApp() || a.ID == "accio" && aj.Launch != "" && (runtime.GOOS == "windows" || runtime.GOOS == "darwin")
 		if a.Native != nil {
 			native := a.Native.Read()
 			aj.Native = &native

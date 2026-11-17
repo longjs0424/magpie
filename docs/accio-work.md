@@ -9,7 +9,11 @@ Magpie 管理，不需要运行 AI-Helper，也不修改 Accio Work 的安装文
 1. 编译并启动此分支的 Magpie，让本地网关保持运行。
 2. 在“供应商”页添加你的模型接口、API Key 和模型。
 3. 在“智能体”页找到 **Accio Work**，选择一个 Magpie 模型。
-4. 完全退出已运行的 Accio Work，然后用页面给出的启动命令，或在终端运行：
+4. Windows 和 macOS 桌面版：完全退出已运行的 Accio Work，然后点击
+   智能体列表中 Accio Work 旁边的 **打开**。程序会带上接入设置启动，
+   不需要打开终端。重复点击或旧进程未退出时会提示先退出，不会强制结束任务。
+
+网页版仍提供复制启动命令，也可以在终端运行：
 
    ```powershell
    .\magpie.exe accio run
@@ -103,3 +107,14 @@ go test -tags nogui ./internal/agent ./internal/agentenv -run 'TestFolderVarsAre
 - 已启动修复后的 Windows 程序，实际 POST 模型目录返回 10 个模型；
   在已安装的 Accio Work 模型菜单中确认 DeepSeek 和 GPT 模型均可显示，
   不再出现“模型列表加载失败”。此检查未发送聊天消息。
+- 内部“打开”入口：Windows/macOS 启动决策、已运行进程、无法读取进程、
+  取消及失败路径、桌面与网页版入口、提示语翻译、界面脚本预算测试通过。
+  Windows 模拟子进程实际收到四个接入变量，自定义安装目录的快捷方式检测通过，
+  且未改写快捷方式。日志：`dist/verification/accio-open-tests.log`。
+- Chromium 内核的界面测试通过：五种语言、900/400 像素窗口、失败后重试、
+  网页版限制共 10 项；既有 agy/Cursor 启动控件回归 8 项通过。
+  日志：`dist/verification/accio-open-ui.log`、
+  `dist/verification/accio-launch-regression-ui.log`。本机旧版测试 Chromium
+  在启动时崩溃，最终使用现有 Edge 完成验证；未执行 WebKit 和真实 Mac 桌面测试。
+- 内部“打开”版本的 Windows 桌面程序编译通过。`-race` 仍因本机缺少
+  cgo/C 编译环境而未能执行。

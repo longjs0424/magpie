@@ -191,3 +191,30 @@ func TestCodexOpenButton(t *testing.T) {
 		t.Fatalf("Open in terminal opened the app: %v", apps)
 	}
 }
+
+func TestAccioWorkOpenButton(t *testing.T) {
+	sandboxHome(t)
+	wasApp, wasTerm := accioAppOpener, agentTerminal
+	t.Cleanup(func() { accioAppOpener, agentTerminal = wasApp, wasTerm })
+	opened := 0
+	accioAppOpener = func(context.Context) error { opened++; return nil }
+	agentTerminal = func(string, string, string) error { t.Fatal("Accio button opened a terminal"); return nil }
+	post := func(w Windows, body string) int {
+		r := httptest.NewRecorder()
+		Handler(w, nil).ServeHTTP(r, httptest.NewRequest("POST", "/api/agents/open", strings.NewReader(body)))
+		return r.Code
+	}
+	if code := post(nil, `{"agent":"accio"}`); code != http.StatusNoContent || opened != 1 {
+		t.Fatalf("open: %d, calls %d", code, opened)
+	}
+	accioAppOpener = func(context.Context) error { return context.Canceled }
+	if code := post(nil, `{"agent":"accio"}`); code < 400 {
+		t.Fatalf("failed launch reported success: %d", code)
+	}
+	if code := post(webTab{}, `{"agent":"accio"}`); code < 400 || opened != 1 {
+		t.Fatalf("web opened an app: %d, calls %d", code, opened)
+	}
+	if code := post(nil, `{"agent":"accio;bad"}`); code < 400 || opened != 1 {
+		t.Fatalf("unknown id opened an app: %d", code)
+	}
+}

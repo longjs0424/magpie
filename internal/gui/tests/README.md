@@ -1,5 +1,12 @@
 # Dropdown browser regression
 
+`accio-open-button.test.cjs` verifies the desktop Accio Work Open button,
+its id-only request, failure/retry, localized labels without overflow, and
+the browser's copy-only fallback in five languages at 900/400px. It uses
+isolated API fixtures. `BROWSER=chromium` selects Chromium alone;
+`MAGPIE_TEST_BROWSER` optionally selects an installed Chromium executable.
+No real Accio process or user configuration is touched.
+
 `agent-details-ready.test.cjs` holds the first settings read and the lazy
 Long conversations module on the main window's Agents → Details path. It
 checks a complete first and warm opening without a final height jump in all

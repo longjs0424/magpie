@@ -431,6 +431,18 @@ func sessionRoutes(mux *http.ServeMux, w Windows) {
 			fail(rw, err)
 			return
 		}
+		if in.Agent == "accio" && !in.Terminal {
+			if isWeb(w) {
+				fail(rw, errors.New("opening an app is only for the desktop app"))
+				return
+			}
+			if err := accioAppOpener(r.Context()); err != nil {
+				fail(rw, err)
+				return
+			}
+			rw.WriteHeader(http.StatusNoContent)
+			return
+		}
 		if in.Agent == "codex" && !in.Terminal && codexOpensApp() {
 			if isWeb(w) {
 				fail(rw, errors.New("opening an app is only for the desktop app"))
@@ -1277,6 +1289,7 @@ func codexOpensApp() bool {
 // codexAppInstalled and codexAppOpener are the agent package's, vars so a
 // test doesn't open a real app.
 var (
+	accioAppOpener    = agent.OpenAccioWork
 	codexAppInstalled = agent.CodexAppInstalled
 	codexAppOpener    = agent.OpenCodexApp
 )

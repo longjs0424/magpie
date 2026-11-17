@@ -3880,7 +3880,7 @@ function openAgentMenu(anchor, a, inFold, at) {
   // coolmantou, lileo0668
   // Codex's desktop app, by the setting Open Codex with (Yink88564391 on
   // X): in the menu, not on the row, so the row lines up with the others
-  const app = a.openApp && mode != "panel" && !web, o = a.terminal && mode != "panel" && !web, term = [...app ? [{ name: "Open the Codex app", icon: LAUNCH_GLYPH, sep: !0, run: () => api("agents/open", { agent: a.id }).catch(statusErr) }] : [], ...o ? [{ name: "Open in terminal", icon: LAUNCH_GLYPH, sep: !app, run: () => api("agents/open", { agent: a.id, terminal: !0 }).catch(statusErr) }] : [], ...a.command ? [{ name: "Copy launch command", icon: COPY_ICON, sep: !o && !app, run: () => copy(a.command, t("Launch command")) }] : []];
+  const app = a.openApp && a.id === "codex" && mode != "panel" && !web, o = a.terminal && mode != "panel" && !web, term = [...app ? [{ name: "Open the Codex app", icon: LAUNCH_GLYPH, sep: !0, run: () => api("agents/open", { agent: a.id }).catch(statusErr) }] : [], ...o ? [{ name: "Open in terminal", icon: LAUNCH_GLYPH, sep: !app, run: () => api("agents/open", { agent: a.id, terminal: !0 }).catch(statusErr) }] : [], ...a.command ? [{ name: "Copy launch command", icon: COPY_ICON, sep: !o && !app, run: () => copy(a.command, t("Launch command")) }] : []];
   const acts = inFold && isHidden(a)
     ? [{ name: "Show", icon: EYE, run: () => setAgentHidden(a, false) }]
     : inFold
@@ -4123,17 +4123,11 @@ function agentPrefsButton(a) {
 // launchButton copies the command that starts an agent on magpie, for one
 // that takes the gateway only from its environment (agy)
 function launchButton(a) {
-  const b = el("button", "field extra launch");
+  const b = el("button", "field extra launch"), direct = a.id === "accio" && a.openApp && !web;
   b.type = "button";
   b.append(svg(LAUNCH_GLYPH, 13, 1.5));
-  b.title = (a.typed
-    ? t("Type {command} in a new terminal to start {name} on magpie · click to copy the command for a terminal open now:", { command: a.typed, name: a.name })
-    : t("{name} takes magpie only from its environment · click to copy the command that starts it:", { name: a.name })) + "\n" + a.launch;
-  b.setAttribute("aria-label", b.title);
-  b.onclick = (ev) => {
-    ev.stopPropagation();
-    copy(a.launch, t("Launch command"), null, t("Copied — run it to start {name} on magpie", { name: a.name }));
-  };
+  if (direct) { b.classList.add("accio-open"); b.append(el("span", "", t("Open"))); }
+  wireLaunch(b, a, direct);
   return b;
 }
 // launchSolo is the one control of an agent that takes magpie only from
@@ -4141,16 +4135,16 @@ function launchButton(a) {
 function launchSolo(a) {
   const b = el("button", "field solo import launch-solo");
   b.type = "button";
-  b.title = t("{name} takes magpie only from its environment · click to copy the command that starts it:", { name: a.name }) + "\n" + a.launch;
   b.append(icon("magpie"), el("span", "v empty", t("Copy launch command")));
   const c = el("span", "chev");
   c.append(svg(LAUNCH_GLYPH, 11, 1.5));
   b.append(c);
-  b.onclick = (ev) => {
-    ev.stopPropagation();
-    copy(a.launch, t("Launch command"), null, t("Copied — run it to start {name} on magpie", { name: a.name }));
-  };
+  wireLaunch(b, a, false, true);
   return b;
+}
+function wireLaunch(b, a, direct, solo) {
+  b.disabled = true;
+  import("./agentlaunch.js").then(m => m.wire(b, a, direct, solo, { t, api, status, statusTErr, copy })).catch(statusErr);
 }
 const LAUNCH_GLYPH = "M2.5 3.5h11v9h-11zM5 6.5l2 1.75L5 10M8.5 10h2.5";
 
