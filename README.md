@@ -61,6 +61,8 @@ curl -fsSL https://usemagpie.ai/install.sh | sh
 
 **3 · Pick a model** for each agent on the **Agents** page. Start a new session and it's on the new model.
 
+Accio Work uses a launch-time gateway: see the [Accio Work setup and current compatibility](docs/accio-work.md).
+
 Or do it all from the terminal:
 
 ```sh

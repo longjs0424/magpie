@@ -61,6 +61,8 @@ curl -fsSL https://usemagpie.ai/install.sh | sh
 
 **3 · 选模型**。在 **Agents** 页给每个 Agent 选一个模型。开一个新会话就用上了。
 
+Accio Work 需要通过启动命令接入本地网关，详见 [Accio Work 配置与兼容范围](docs/accio-work.md)。
+
 也可以全程在终端里操作：
 
 ```sh

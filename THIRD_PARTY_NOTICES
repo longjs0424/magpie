@@ -1,6 +1,14 @@
 magpie third-party notices
 ==========================
 
+Accio Work protocol compatibility
+--------------------------------
+The Accio Work adapter is based on the launch variables and protocol
+shapes in TF49/AI-Helper (https://github.com/TF49/AI-Helper),
+src-tauri/src/process_manager.rs and src-tauri/src/accio/{bridge,protocol}.rs.
+Copyright (c) 2025 Jason Young. MIT License; see
+third_party/ai-helper/LICENSE for the complete license.
+
 magpie is built with moejs (https://github.com/MoeForge/moejs,
 Apache License 2.0), a JavaScript engine that runs gateway plugins. moejs
 compiles the material below into every magpie binary, and its notices,

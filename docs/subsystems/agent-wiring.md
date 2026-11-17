@@ -8,6 +8,22 @@ supported agent: where its config lives, which fields matter and which
 values to offer. It also records what magpie set, so a later change made by
 something else shows up as drift.
 
+## Accio Work
+
+[`accio.go`](../../internal/agent/accio.go) adds `accio` (`acciowork` and
+`accio-work` are aliases). Its model field is kept in magpie's own
+`accio.json`, at `gateway.AccioConfigPath`; Accio's files are left alone.
+`Start` and `Launch` give a newly started Accio process `GATEWAY_BASE_URL`,
+`ADK_BASE_URL`, `ADK_MODEL` and `EMBEDDING_BASE_URL`. The gateway address
+uses `/accio`, served by [the ADK adapter](../../internal/gateway/accio.go).
+An executable in `MAGPIE_ACCIO_BIN` wins over usual Windows/macOS install
+paths and PATH. Disconnect clears the model and subsequent launches receive
+no magpie variables. A process already running keeps its old environment;
+starting from the vendor's shortcut receives no magpie environment either.
+The existing translated launch notice tells the user how to start it.
+See [setup and compatibility](../accio-work.md) and
+`TestAccioWorkConnectLaunchDisconnect` / `TestAccioWorkLaunchQuotesShellData`.
+
 ## Responsibilities and sources of truth
 
 | Part | Responsibility | Source |

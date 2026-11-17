@@ -12,6 +12,11 @@ and billion-context's plugin, which folds a long session's older turns into
 summaries the model can open again, and lists, switches and copies each
 Pi's extensions and packages.
 
+Accio Work currently has no Library target: its skills and MCP configuration
+are remote Accio APIs, and the [Accio adapter](../accio-work.md) only wires
+model inference. This boundary is recorded in `noLibrary` in
+[`every_agent_test.go`](../../internal/library/every_agent_test.go).
+
 ## Responsibilities and sources of truth
 
 | Part | Responsibility | Source |

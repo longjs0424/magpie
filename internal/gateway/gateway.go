@@ -60,6 +60,9 @@ func TokenFor(agent string) string { return Token + "-" + agent }
 // agentOf is the agent a request came from: the one its token names
 // (TokenFor), else the one its User-Agent does.
 func agentOf(r *http.Request) string {
+	if strings.HasPrefix(r.URL.Path, AccioPath+"/") {
+		return "accio"
+	}
 	if id := pathAgent(r); id != "" {
 		return id
 	}
@@ -1051,6 +1054,7 @@ func (s *Server) routes() *routeMux {
 	mux.HandleFunc("GET /models", s.models)
 	mux.HandleFunc("GET /v1/models/{id...}", s.model)
 	mux.HandleFunc("GET /muse-code/models", s.museModels)
+	mux.HandleFunc(AccioPath+"/{path...}", s.accio)
 	// Claude Desktop's third-party gateway looks for one here before it
 	// takes the address
 	mux.HandleFunc("GET /api/hello", func(w http.ResponseWriter, r *http.Request) {

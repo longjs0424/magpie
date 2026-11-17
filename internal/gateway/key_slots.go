@@ -47,6 +47,7 @@ const (
 // their key's MaxConcurrency, and how; every other route of routes() is in
 // keySlotFree (key_slots_test.go).
 var keySlotRoutes = map[string]keySlotKind{
+	AccioPath + "/{path...}":        keySlotEager,
 	"POST /v1/chat/completions":     keySlotLazy,
 	"POST /chat/completions":        keySlotLazy,
 	"POST /v1/responses":            keySlotLazy,

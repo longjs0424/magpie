@@ -19,6 +19,7 @@ import (
 // in readOnlyRoutes fails TestReadOnlyKeyEveryRoute, so a new one is
 // classified before it ships: the guard refuses it until then.
 var readOnlyRefused = []string{
+	AccioPath + "/{path...}",
 	// the Library's skills and prompts: a held key is a display, not a client
 	"GET /v1/magpie/library",
 	// the models this computer's agents are on: a client's picks to follow
