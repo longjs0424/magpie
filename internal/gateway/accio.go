@@ -61,8 +61,12 @@ func (s *Server) accio(w http.ResponseWriter, r *http.Request) {
 		s.accioLLM(w, r)
 	case p == "/api/adk/embedding/embed" && r.Method == http.MethodPost:
 		s.accioEmbedding(w, r)
+	// Both web_search and web_fetch POST this envelope to Accio's
+	// authenticated tool service. It is not a model inference fallback.
+	case p == "/api/web/search-proxy" && r.Method == http.MethodPost:
+		s.accioOfficial(w, r, p)
 	case accioMetadataPath(p):
-		s.accioMetadata(w, r, p)
+		s.accioOfficial(w, r, p)
 	default:
 		writeError(w, provider.Chat, http.StatusNotImplemented, "this Accio Work endpoint is not supported by magpie; no request was sent to Accio's inference service")
 	}
@@ -411,8 +415,8 @@ func (s *Server) accioEmbedding(w http.ResponseWriter, r *http.Request) {
 	s.retrieve("/embeddings", "embeddings")(w, in)
 }
 
-// Only account and metadata endpoints may reach Accio's fixed official
-// origin. Unknown, inference, image, embedding and MCP paths fail closed.
+// This is the metadata allow list. The one supported web-tool route is
+// matched separately above. Unknown, inference, image and MCP paths fail closed.
 func accioMetadataPath(p string) bool {
 	for _, c := range p {
 		if !(c >= 'a' && c <= 'z' || c >= 'A' && c <= 'Z' || c >= '0' && c <= '9' || strings.ContainsRune("/-_", c)) {
@@ -435,9 +439,9 @@ func accioMetadataPath(p string) bool {
 	return false
 }
 
-func (s *Server) accioMetadata(w http.ResponseWriter, r *http.Request, p string) {
+func (s *Server) accioOfficial(w http.ResponseWriter, r *http.Request, p string) {
 	if !local(r) {
-		writeError(w, provider.Chat, 403, "Accio Work metadata is available on this computer only")
+		writeError(w, provider.Chat, 403, "Accio Work official tools and metadata are available on this computer only")
 		return
 	}
 	body, ok := s.requestBody(w, r, provider.Chat)
@@ -455,7 +459,7 @@ func (s *Server) accioMetadata(w http.ResponseWriter, r *http.Request, p string)
 		writeError(w, provider.Chat, 400, err.Error())
 		return
 	}
-	for _, key := range []string{"Authorization", "Cookie", "Content-Type", "User-Agent", "Accept", "Accept-Language"} {
+	for _, key := range []string{"Authorization", "Cookie", "Content-Type", "User-Agent", "Accept", "Accept-Language", "X-App-Version", "X-Package-Region", "X-Language", "X-Source"} {
 		if v := r.Header.Get(key); v != "" {
 			in.Header.Set(key, v)
 		}
@@ -475,15 +479,15 @@ func (s *Server) accioMetadata(w http.ResponseWriter, r *http.Request, p string)
 	client.CheckRedirect = func(*http.Request, []*http.Request) error { return http.ErrUseLastResponse }
 	res, err := client.Do(in)
 	if err != nil {
-		writeError(w, provider.Chat, 502, "Accio Work metadata request failed")
+		writeError(w, provider.Chat, 502, "Accio Work official service request failed")
 		return
 	}
 	defer res.Body.Close()
 	if res.StatusCode >= 300 && res.StatusCode < 400 {
-		writeError(w, provider.Chat, 502, "Accio Work metadata redirect refused")
+		writeError(w, provider.Chat, 502, "Accio Work official service redirect refused")
 		return
 	}
-	for _, key := range []string{"Content-Type", "Set-Cookie"} {
+	for _, key := range []string{"Content-Type", "Set-Cookie", "Retry-After"} {
 		for _, v := range res.Header.Values(key) {
 			w.Header().Add(key, v)
 		}

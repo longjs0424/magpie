@@ -251,6 +251,82 @@ func TestAccioWorkMalformedConfigIsUnknown(t *testing.T) {
 
 type accioTestTransport func(*http.Request) (*http.Response, error)
 
+func TestAccioWorkWebSearchProxy(t *testing.T) {
+	fresh(t)
+	s := New()
+	calls := 0
+	status := 200
+	s.client.Transport = accioTestTransport(func(r *http.Request) (*http.Response, error) {
+		calls++
+		if r.Method != "POST" || r.URL.String() != "https://phoenix-gw.alibaba.com/api/web/search-proxy" {
+			t.Fatalf("wrong search destination: %s %s", r.Method, r.URL)
+		}
+		b, _ := io.ReadAll(r.Body)
+		if gjson.GetBytes(b, "accessToken").String() != "accio-session-test" || !strings.HasPrefix(gjson.GetBytes(b, "url").String(), "https://api.ydc-index.io/") {
+			t.Fatalf("search request changed: %s", b)
+		}
+		if r.Header.Get("Cookie") != "accio=test" || r.Header.Get("Content-Encoding") != "" || r.Header.Get("Authorization") != "" || r.Header.Get("X-Package-Region") != "cn" {
+			t.Fatalf("headers: %v", r.Header)
+		}
+		return &http.Response{StatusCode: status, Header: http.Header{"Content-Type": []string{"application/json"}, "Location": []string{"https://elsewhere.invalid"}}, Body: io.NopCloser(strings.NewReader(`{"code":"SUCCESS","data":{"organic_results":[{"title":"Example","link":"https://example.com"}]}}`)), Request: r}, nil
+	})
+	h := lanGuard(s.Handler())
+	for _, endpoint := range []string{"https://api.ydc-index.io/v1/custom/s/search?q=test", "https://api.ydc-index.io/v1/contents"} {
+		body := `{"url":"` + endpoint + `","method":"GET","accessToken":"accio-session-test","messageId":"test-id"}`
+		if strings.HasSuffix(endpoint, "contents") {
+			body = `{"url":"` + endpoint + `","method":"POST","body":"{\"urls\":[\"https://example.com\"],\"format\":\"markdown\"}","accessToken":"accio-session-test"}`
+		}
+		for _, code := range []int{200, 401, 429, 302} {
+			status = code
+			var compressed bytes.Buffer
+			gz := gzip.NewWriter(&compressed)
+			gz.Write([]byte(body))
+			gz.Close()
+			r := httptest.NewRequest("POST", AccioPath+"/api/web/search-proxy", &compressed)
+			r.RemoteAddr = "127.0.0.1:32000"
+			r.Header.Set("Content-Encoding", "gzip")
+			r.Header.Set("Cookie", "accio=test")
+			r.Header.Set("Authorization", "Bearer "+Token)
+			r.Header.Set("X-Package-Region", "cn")
+			w := httptest.NewRecorder()
+			h.ServeHTTP(w, r)
+			want := code
+			if code == 302 {
+				want = 502
+			}
+			if w.Code != want || code == 200 && gjson.Get(w.Body.String(), "data.organic_results.0.title").String() != "Example" {
+				t.Fatalf("search %d: %d %s", code, w.Code, w.Body.String())
+			}
+		}
+	}
+	if calls != 8 {
+		t.Fatalf("unexpected upstream calls: %d", calls)
+	}
+	for _, path := range []string{"/api/web/search-proxy/other", "/api/web/other", "/api/mcp/proxy", "/api/tool/tpp/call"} {
+		r := httptest.NewRequest("POST", AccioPath+path, strings.NewReader(`{}`))
+		r.RemoteAddr = "127.0.0.1:32000"
+		w := httptest.NewRecorder()
+		h.ServeHTTP(w, r)
+		if w.Code != 501 || calls != 8 {
+			t.Fatalf("unsupported endpoint forwarded: %s %d", path, w.Code)
+		}
+	}
+	r := httptest.NewRequest("GET", AccioPath+"/api/web/search-proxy", nil)
+	r.RemoteAddr = "127.0.0.1:32000"
+	w := httptest.NewRecorder()
+	h.ServeHTTP(w, r)
+	if w.Code != 501 || calls != 8 {
+		t.Fatal("unsupported method forwarded")
+	}
+	r = httptest.NewRequest("POST", AccioPath+"/api/web/search-proxy", strings.NewReader(`{}`))
+	r.RemoteAddr = "192.0.2.1:32000"
+	w = httptest.NewRecorder()
+	s.accioOfficial(w, r, "/api/web/search-proxy")
+	if w.Code != 403 || calls != 8 {
+		t.Fatal("remote caller reached official tools")
+	}
+}
+
 func (f accioTestTransport) RoundTrip(r *http.Request) (*http.Response, error) { return f(r) }
 
 func TestAccioWorkMetadataBoundary(t *testing.T) {

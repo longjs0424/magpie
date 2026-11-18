@@ -68,8 +68,15 @@ $env:MAGPIE_ACCIO_BIN = 'D:\Apps\Accio\Accio.exe'
   Magpie 的 `供应商/模型` ID。本集成不会默认选择收费的 Embedding 模型。
 - 账号、登录、团队、技能等允许的元数据请求只转发到固定的 Accio 官方域名；
   此入口仅接受来自本机的元数据请求，并拒绝重定向。
+- `web_search` 和 `web_fetch` 使用的 `/api/web/search-proxy` 已接通：
+  搜索及网页抓取继续使用 Accio 官方工具服务及已有 Accio 登录，
+  与第三方模型接口分别处理。Accio 登录失效或官方工具限额仍会返回对应错误。
 - 推理失败不会回退到 Accio 官方推理接口。图像生成、远程 MCP 代理、
   未适配的 Accio 路径返回明确错误；这些功能尚未迁移。
+
+如果模型可以回复，但搜索或抓取报 HTTP 501，请更新至包含上述搜索代理
+适配的版本，并退出、重新打开 Magpie。发布商品等经由 TPP/远程 MCP 的
+业务工具仍未迁移；这类工具报错不能据此判定电脑无法上网。
 
 ## 验证
 
@@ -83,7 +90,7 @@ go test -tags nogui ./internal/agent ./internal/agentenv -run 'TestFolderVarsAre
 真实 Accio Work 客户端与第三方 API Key 的联调仍需要实际安装和凭据，
 模拟接口通过不能替代这一检查。
 
-### 本次本地验证记录（2026-11-17）
+### 本地验证记录（2026-11-17 至 2026-11-18）
 
 在 Windows 上使用 Go 1.27.4：
 
@@ -118,3 +125,8 @@ go test -tags nogui ./internal/agent ./internal/agentenv -run 'TestFolderVarsAre
   在启动时崩溃，最终使用现有 Edge 完成验证；未执行 WebKit 和真实 Mac 桌面测试。
 - 内部“打开”版本的 Windows 桌面程序编译通过。`-race` 仍因本机缺少
   cgo/C 编译环境而未能执行。
+- 搜索代理回归：按安装客户端的真实接口格式，修复前复现 HTTP 501；
+  修复后搜索、网页抓取、gzip、认证及区域信息、401/429、重定向拒绝、
+  本机限制与未支持路径边界测试通过。原有 Accio 专项及网关限制测试通过。
+  日志：`dist/verification/accio-web-before.log`、`dist/verification/accio-web-after.log`。
+  此项使用模拟官方接口，未调用真实 Accio 搜索账号。

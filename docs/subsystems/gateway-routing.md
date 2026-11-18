@@ -77,8 +77,13 @@ comment heartbeats while it runs. Missing or corrupt default-model
 configuration never selects an arbitrary model. Embeddings require an
 explicit model and go through `retrieve`.
 
-Only the fixed account/metadata allow list may reach
+Only the fixed account/metadata allow list and POST `/api/web/search-proxy` may reach
 `https://phoenix-gw.alibaba.com`, from this computer only, with no redirects.
+The latter carries Accio's authenticated `web_search` and `web_fetch`
+envelopes unchanged. It uses Accio's existing account, not the provider's
+model key. Auth/rate-limit errors are preserved and never trigger model
+fallback. `TestAccioWorkWebSearchProxy` covers search/content requests,
+gzip, fixed-origin forwarding, credentials, errors and endpoint boundaries.
 Unknown routes, image generation and MCP proxy routes fail closed and no
 inference error falls back to Accio's own service. See
 [compatibility and setup](../accio-work.md). `TestAccioWorkGateway` runs the
