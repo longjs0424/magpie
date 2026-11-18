@@ -77,14 +77,21 @@ comment heartbeats while it runs. Missing or corrupt default-model
 configuration never selects an arbitrary model. Embeddings require an
 explicit model and go through `retrieve`.
 
-Only the fixed account/metadata allow list and POST `/api/web/search-proxy` may reach
+Only the fixed account/metadata allow list, POST `/api/web/search-proxy`
+and POST `/api/mcp/proxy` may reach
 `https://phoenix-gw.alibaba.com`, from this computer only, with no redirects.
 The latter carries Accio's authenticated `web_search` and `web_fetch`
 envelopes unchanged. It uses Accio's existing account, not the provider's
 model key. Auth/rate-limit errors are preserved and never trigger model
 fallback. `TestAccioWorkWebSearchProxy` covers search/content requests,
 gzip, fixed-origin forwarding, credentials, errors and endpoint boundaries.
-Unknown routes, image generation and MCP proxy routes fail closed and no
+MCP envelopes require an Accio accessToken and a nested request method;
+they retain their IDs and parameters. JSON and SSE replies, including
+JSON-RPC errors, pass through unchanged, with each SSE chunk flushed and
+a two-minute deadline. There are no automatic retries for business tools.
+`TestAccioWorkMCPProxy` and `TestAccioWorkMCPFlushesBeforeCompletion`
+cover the SDK envelope, errors, authentication and streaming behavior.
+Unknown routes, image generation and MCP proxy subpaths fail closed and no
 inference error falls back to Accio's own service. See
 [compatibility and setup](../accio-work.md). `TestAccioWorkGateway` runs the
 full guarded handler with a local fake Chat upstream, gzip and both input

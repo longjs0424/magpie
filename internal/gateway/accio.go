@@ -65,6 +65,8 @@ func (s *Server) accio(w http.ResponseWriter, r *http.Request) {
 	// authenticated tool service. It is not a model inference fallback.
 	case p == "/api/web/search-proxy" && r.Method == http.MethodPost:
 		s.accioOfficial(w, r, p)
+	case p == "/api/mcp/proxy" && r.Method == http.MethodPost:
+		s.accioOfficial(w, r, p)
 	case accioMetadataPath(p):
 		s.accioOfficial(w, r, p)
 	default:
@@ -416,7 +418,7 @@ func (s *Server) accioEmbedding(w http.ResponseWriter, r *http.Request) {
 }
 
 // This is the metadata allow list. The one supported web-tool route is
-// matched separately above. Unknown, inference, image and MCP paths fail closed.
+// matched separately above. Unknown, inference and image paths fail closed.
 func accioMetadataPath(p string) bool {
 	for _, c := range p {
 		if !(c >= 'a' && c <= 'z' || c >= 'A' && c <= 'Z' || c >= '0' && c <= '9' || strings.ContainsRune("/-_", c)) {
@@ -448,7 +450,18 @@ func (s *Server) accioOfficial(w http.ResponseWriter, r *http.Request, p string)
 	if !ok {
 		return
 	}
-	ctx, cancel := context.WithTimeout(r.Context(), 30*time.Second)
+	timeout := 30 * time.Second
+	if p == "/api/mcp/proxy" {
+		// The installed SDK sends an authenticated JSON-RPC envelope.
+		// Refuse malformed or unauthenticated envelopes locally.
+		v := gjson.ParseBytes(body)
+		if !json.Valid(body) || !v.IsObject() || v.Get("accessToken").Type != gjson.String || strings.TrimSpace(v.Get("accessToken").String()) == "" || !v.Get("request").IsObject() || v.Get("request.method").Type != gjson.String || strings.TrimSpace(v.Get("request.method").String()) == "" {
+			writeError(w, provider.Chat, 400, "Accio Work MCP requires an accessToken and a JSON-RPC request with a method")
+			return
+		}
+		timeout = 2 * time.Minute
+	}
+	ctx, cancel := context.WithTimeout(r.Context(), timeout)
 	defer cancel()
 	u := "https://phoenix-gw.alibaba.com" + p
 	if r.URL.RawQuery != "" {
@@ -493,5 +506,24 @@ func (s *Server) accioOfficial(w http.ResponseWriter, r *http.Request, p string)
 		}
 	}
 	w.WriteHeader(res.StatusCode)
-	io.Copy(w, io.LimitReader(res.Body, 16<<20))
+	var out io.Writer = w
+	if strings.Contains(strings.ToLower(res.Header.Get("Content-Type")), "text/event-stream") {
+		out = accioEventWriter{w}
+	}
+	io.Copy(out, io.LimitReader(res.Body, 16<<20))
+}
+
+// Flush each upstream SSE chunk rather than buffering a long-running
+// business tool until it completes. There is no inference retry/fallback.
+type accioEventWriter struct{ http.ResponseWriter }
+
+func (w accioEventWriter) Write(b []byte) (int, error) {
+	n, err := w.ResponseWriter.Write(b)
+	if err == nil {
+		err = http.NewResponseController(w.ResponseWriter).Flush()
+		if errors.Is(err, http.ErrNotSupported) {
+			err = nil
+		}
+	}
+	return n, err
 }

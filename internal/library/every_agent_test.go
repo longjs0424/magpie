@@ -12,7 +12,7 @@ import (
 // Library (SSNQT on X). A new agent fails TestEveryAgentInLibrary until it
 // gets a target or a line here.
 var noLibrary = map[string]string{
-	"accio":             "skills and MCP are remote Accio APIs; this integration only adapts model inference",
+	"accio":             "skills and MCP configuration are remote Accio APIs, not local Library targets",
 	"claude-science":    "not looked at (#5897)",
 	"openchamber":       "not looked at (#5897)",
 	"mothx":             "not looked at (#5897)",

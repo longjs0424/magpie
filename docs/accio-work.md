@@ -71,12 +71,17 @@ $env:MAGPIE_ACCIO_BIN = 'D:\Apps\Accio\Accio.exe'
 - `web_search` 和 `web_fetch` 使用的 `/api/web/search-proxy` 已接通：
   搜索及网页抓取继续使用 Accio 官方工具服务及已有 Accio 登录，
   与第三方模型接口分别处理。Accio 登录失效或官方工具限额仍会返回对应错误。
-- 推理失败不会回退到 Accio 官方推理接口。图像生成、远程 MCP 代理、
+- MCP 官方工具代理 `/api/mcp/proxy` 已接通：保留 Accio 的登录、工具参数、
+  JSON-RPC ID、JSON/SSE 回复与工具错误。SSE 逐块刷新，单次请求最多等待
+  两分钟，桥接不会自动重试业务工具操作。具体工具仍依赖 Accio 账号的授权。
+- 推理失败不会回退到 Accio 官方推理接口。图像生成、TPP/RLab 独立接口、
   未适配的 Accio 路径返回明确错误；这些功能尚未迁移。
 
 如果模型可以回复，但搜索或抓取报 HTTP 501，请更新至包含上述搜索代理
-适配的版本，并退出、重新打开 Magpie。发布商品等经由 TPP/远程 MCP 的
-业务工具仍未迁移；这类工具报错不能据此判定电脑无法上网。
+适配的版本，并退出、重新打开 Magpie。若 MCP 工具仍报错，先检查日志中的
+实际 HTTP 状态：旧版本的 `MCP proxy request failed: 501` 是桥接尚未适配，
+不能据此认定为官方服务故障。MCP 通道已适配不等于所有发品接口均已支持；
+TPP/RLab 独立接口仍未迁移。
 
 ## 验证
 
@@ -130,3 +135,7 @@ go test -tags nogui ./internal/agent ./internal/agentenv -run 'TestFolderVarsAre
   本机限制与未支持路径边界测试通过。原有 Accio 专项及网关限制测试通过。
   日志：`dist/verification/accio-web-before.log`、`dist/verification/accio-web-after.log`。
   此项使用模拟官方接口，未调用真实 Accio 搜索账号。
+- Windows 本机日志确认 MCP 请求曾被桥接以 HTTP 501 拒绝，4097 正在监听。
+  MCP SDK 请求的回归测试在修复前复现 501。修复后覆盖 JSON、SSE、工具错误、
+  401/429、重定向拒绝、无效请求和流式刷新；不调用真实发品或修改店铺。
+  日志：`dist/verification/accio-mcp-before.log`、`dist/verification/accio-mcp-after.log`。

@@ -219,7 +219,7 @@ func TestAccioWorkInternalModelSelection(t *testing.T) {
 func TestAccioWorkDoesNotFallbackToOfficial(t *testing.T) {
 	fresh(t)
 	h := lanGuard(New().Handler())
-	for _, path := range []string{"/api/adk/llm", "/api/mcp/proxy", "/api/tool/rlab/call", "/api/adk/embedding/embed"} {
+	for _, path := range []string{"/api/adk/llm", "/api/mcp/proxy/unsupported", "/api/tool/rlab/call", "/api/adk/embedding/embed"} {
 		r := httptest.NewRequest("POST", AccioPath+path, strings.NewReader(`{"contents":[{"parts":[{"text":"hello"}]}]}`))
 		r.RemoteAddr = "127.0.0.1:32500"
 		w := httptest.NewRecorder()
@@ -302,7 +302,7 @@ func TestAccioWorkWebSearchProxy(t *testing.T) {
 	if calls != 8 {
 		t.Fatalf("unexpected upstream calls: %d", calls)
 	}
-	for _, path := range []string{"/api/web/search-proxy/other", "/api/web/other", "/api/mcp/proxy", "/api/tool/tpp/call"} {
+	for _, path := range []string{"/api/web/search-proxy/other", "/api/web/other", "/api/mcp/proxy/unsupported", "/api/tool/tpp/call"} {
 		r := httptest.NewRequest("POST", AccioPath+path, strings.NewReader(`{}`))
 		r.RemoteAddr = "127.0.0.1:32000"
 		w := httptest.NewRecorder()
